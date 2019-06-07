@@ -1,0 +1,9 @@
+*.o
+*~
+gastask
+cscope.out
+*.conf
+*.tar
+*.tgz
+*.swp
+report.txt

@@ -1,0 +1,20 @@
+# max_generations n_populations cutoff penalty
+*genetic
+100000 100 1.2 0.5
+
+# wcet_sacle power_active power_idle
+*cpufreq
+1    10    8
+0.8   1.7  1.3
+
+# type max_capacity wcet_scale power_active power_idle
+*mem
+nvram 1000 0.7 0.01  0.01
+dram  1000 1   0.1   0.1
+
+# wcet period memreq mem_active_ratio
+*task
+10 30   200 0.1
+10 20   20  0.05
+ 1 20   20  0.1
+
