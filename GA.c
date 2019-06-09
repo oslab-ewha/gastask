@@ -195,19 +195,32 @@ do_crossover(unsigned n1, unsigned n2, unsigned crosspt_mem, unsigned crosspt_cp
 	return FALSE;
 }
 
+static unsigned
+get_best_gene_no(void)
+{
+	gene_t	*gene_best = list_entry(genes_by_power.next, gene_t, list_power);
+
+	return (unsigned)(gene_best - genes);
+}
+
 static void
 crossover(void)
 {
+	unsigned	best_no;
 	int	i;
+
+	best_no = get_best_gene_no();
 
 	for (i = 0; i < MAX_TRY; i++) {
 		unsigned	n1, n2;
 		unsigned	crosspt_mem, crosspt_cpufreq;
 	
-		n1 = get_rand(n_pops);
+		do {
+			n1 = get_rand(n_pops);
+		} while (n1 == best_no);
 		do {
 			n2 = get_rand(n_pops);
-		} while (n2 == n1);
+		} while (n2 == n1 || n2 == best_no);
 
 		crosspt_mem = get_rand(n_tasks - 1) + 1;
 		crosspt_cpufreq = get_rand(n_tasks - 1) + 1;
