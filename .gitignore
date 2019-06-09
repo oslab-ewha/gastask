@@ -1,9 +1,12 @@
 *.o
 *~
 gastask
+gasgen
 cscope.out
 *.conf
 *.tar
 *.tgz
 *.swp
-report.txt
+/report.txt
+/task.txt
+/task_generated.txt

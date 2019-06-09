@@ -1,29 +1,11 @@
 #ifndef _GASTASK_H_
 #define _GASTASK_H_
 
-#define _GNU_SOURCE
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <getopt.h>
-#include <stdarg.h>
-#include <string.h>
-#include <assert.h>
-#include <math.h>
-
-#include "ecm_list.h"
-
-#define TRUE	1
-#define FALSE	0
+#include "common.h"
 
 #define MAX_TASKS	100
 #define MAX_CPU_FREQS	10
 #define MAX_MEMS	2
-
-#define ASSERT(cond)			do { assert(cond); } while (0)
-#define FATAL(exitcode, fmt, ...)	do { errmsg(fmt, ## __VA_ARGS__); exit(exitcode); } while (0)
-
-typedef int	BOOL;
 
 typedef enum {
 	MEMTYPE_NONE = 0,
@@ -83,10 +65,6 @@ extern double	power_consumed_cpu_active;
 extern double	power_consumed_mem_active;
 extern double	power_consumed_cpu_idle;
 extern double	power_consumed_mem_idle;
-
-void errmsg(const char *fmt, ...);
-
-void load_conf(const char *fpath);
 
 void add_mem(const char *typestr, unsigned max_capacity, double wcet_scale, double power_active, double power_idle);
 void add_cpufreq(double wcet_scale, double power_active, double power_idle);

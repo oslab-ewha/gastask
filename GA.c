@@ -13,12 +13,6 @@ LIST_HEAD(genes_by_score);
 
 gene_t	*genes;
 
-static unsigned
-get_rand(unsigned max_value)
-{
-	return abs(rand()) % max_value;
-}
-
 static void
 assign_task_values(unsigned char *task_values, unsigned max_value)
 {
