@@ -6,7 +6,7 @@ task_t	tasks[MAX_TASKS];
 #define MIN(a, b)	((a) < (b) ? (a): (b))
 
 void
-get_task_utilpower(unsigned no_task, unsigned char mem_type, unsigned char cpufreq_type, double *putil, double *ppower)
+get_task_utilpower(unsigned no_task, unsigned char mem_type, unsigned char cpufreq_type, double *putil, double *ppower_cpu, double *ppower_mem)
 {
 	task_t	*task = tasks + no_task;
 	mem_t	*mem = mems + mem_type;
@@ -18,9 +18,10 @@ get_task_utilpower(unsigned no_task, unsigned char mem_type, unsigned char cpufr
 		FATAL(3, "task[%u]: scaled wcet exceeds task period: %lf > %lf", wcet_scaled, task->period);
 	}
 	*putil = wcet_scaled / task->period;
-	*ppower = (task->memreq * task->mem_active_ratio * mem->power_active + cpufreq->power_active) * wcet_scaled / task->period +
-		(task->memreq * mem->power_idle + cpufreq->power_idle) * (1 - wcet_scaled / task->period);
-	
+	*ppower_cpu = cpufreq->power_active * wcet_scaled / task->period +
+		cpufreq->power_idle * (1 - wcet_scaled / task->period);
+	*ppower_mem = task->memreq * (task->mem_active_ratio * mem->power_active + (1 - task->mem_active_ratio) * mem->power_idle) * wcet_scaled / task->period +
+		task->memreq * mem->power_idle * (1 - wcet_scaled / task->period);
 }
 
 unsigned

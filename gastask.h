@@ -7,12 +7,6 @@
 #define MAX_CPU_FREQS	10
 #define MAX_MEMS	2
 
-typedef enum {
-	MEMTYPE_NONE = 0,
-	MEMTYPE_NVRAM = 1,
-	MEMTYPE_DRAM = 2,
-} mem_type_t;
-
 typedef struct {
 	unsigned char	mems[MAX_TASKS];
 	unsigned char	cpufreqs[MAX_TASKS];
@@ -28,9 +22,6 @@ typedef struct {
 	unsigned	period;
 	unsigned	memreq;
 	double		mem_active_ratio;
-
-	int		idx_cpufreq;
-	mem_type_t	mem_type;
 } task_t;
 
 typedef struct {
@@ -70,7 +61,7 @@ void add_mem(const char *typestr, unsigned max_capacity, double wcet_scale, doub
 void add_cpufreq(double wcet_scale, double power_active, double power_idle);
 void add_task(unsigned wcet, unsigned period, unsigned memreq, double mem_active_ratio);
 
-void get_task_utilpower(unsigned no_task, unsigned char mem_type, unsigned char cpufreq_type, double *putil, double *ppower);
+void get_task_utilpower(unsigned no_task, unsigned char mem_type, unsigned char cpufreq_type, double *putil, double *ppower_cpu, double *ppower_mem);
 unsigned get_task_memreq(unsigned no_task);
 
 void init_report(void);

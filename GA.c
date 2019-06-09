@@ -13,6 +13,26 @@ LIST_HEAD(genes_by_score);
 
 gene_t	*genes;
 
+#if 0
+
+static void
+show_gene(gene_t *gene)
+{
+	int	i;
+
+	printf("power: %.2lf mem:", gene->power);
+	for (i = 0; i < n_tasks; i++) {
+		printf("%c", gene->mems[i] + '0');
+	}
+	printf(" cpufreq:");
+	for (i = 0; i < n_tasks; i++) {
+		printf("%c", gene->cpufreqs[i] + '0');
+	}
+	printf("\n");
+}
+
+#endif
+
 static void
 assign_task_values(unsigned char *task_values, unsigned max_value)
 {
@@ -78,18 +98,21 @@ sort_gene(gene_t *gene)
 static BOOL
 calc_utilpower(gene_t *gene)
 {
-	double	util_new = 0, power_new = 0;
+	double	util_new = 0, power_new, power_new_sum_cpu = 0, power_new_sum_mem = 0;
 	unsigned	mem_used[MAX_MEMS] = { 0, };
 	int	i;
 
 	for (i = 0; i < n_tasks; i++) {
-		double	task_util, task_power;
+		double	task_util, task_power_cpu, task_power_mem;
 		
-		get_task_utilpower(i, gene->mems[i], gene->cpufreqs[i], &task_util, &task_power);
+		get_task_utilpower(i, gene->mems[i], gene->cpufreqs[i], &task_util, &task_power_cpu, &task_power_mem);
 		mem_used[gene->mems[i]] += get_task_memreq(i);
 		util_new += task_util;
-		power_new += task_power;
+		power_new_sum_cpu += task_power_cpu;
+		power_new_sum_mem += task_power_mem;
 	}
+	power_new = power_new_sum_cpu / n_tasks + power_new_sum_mem;
+
 	for (i = 0; i < n_mems; i++) {
 		if (mem_used[i] > mems[i].max_capacity)
 			return FALSE;
@@ -116,7 +139,7 @@ init_gene(gene_t *gene)
 
 	for (i = 0; i < MAX_TRY; i++) {
 		assign_task_values(gene->mems, n_mems);
-		assign_task_values(gene->cpufreqs, n_mems);
+		assign_task_values(gene->cpufreqs, n_cpufreqs);
 
 		INIT_LIST_HEAD(&gene->list_util);
 		INIT_LIST_HEAD(&gene->list_power);
