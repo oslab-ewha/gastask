@@ -23,6 +23,14 @@ get_task_utilpower(unsigned no_task, unsigned char mem_type, unsigned char cpufr
 	
 }
 
+unsigned
+get_task_memreq(unsigned no_task)
+{
+	task_t	*task = tasks + no_task;
+
+	return task->memreq;
+}
+
 void
 add_task(unsigned wcet, unsigned period, unsigned memreq, double mem_active_ratio)
 {

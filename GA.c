@@ -79,14 +79,20 @@ static BOOL
 calc_utilpower(gene_t *gene)
 {
 	double	util_new = 0, power_new = 0;
+	unsigned	mem_used[MAX_MEMS] = { 0, };
 	int	i;
 
 	for (i = 0; i < n_tasks; i++) {
 		double	task_util, task_power;
 		
 		get_task_utilpower(i, gene->mems[i], gene->cpufreqs[i], &task_util, &task_power);
+		mem_used[gene->mems[i]] += get_task_memreq(i);
 		util_new += task_util;
 		power_new += task_power;
+	}
+	for (i = 0; i < n_mems; i++) {
+		if (mem_used[i] > mems[i].max_capacity)
+			return FALSE;
 	}
 	if (util_new <= cutoff) {
 		gene->util = util_new;

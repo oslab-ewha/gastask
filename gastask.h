@@ -71,6 +71,7 @@ void add_cpufreq(double wcet_scale, double power_active, double power_idle);
 void add_task(unsigned wcet, unsigned period, unsigned memreq, double mem_active_ratio);
 
 void get_task_utilpower(unsigned no_task, unsigned char mem_type, unsigned char cpufreq_type, double *putil, double *ppower);
+unsigned get_task_memreq(unsigned no_task);
 
 void init_report(void);
 void close_report(void);
