@@ -1,6 +1,6 @@
 #include "gastask.h"
 
-#define MAX_TRY	100
+#define MAX_TRY	200
 
 unsigned	n_pops = 100;
 unsigned	max_gen = 100000;
@@ -117,8 +117,8 @@ calc_utilpower(gene_t *gene)
 		if (mem_used[i] > mems[i].max_capacity)
 			return FALSE;
 	}
+	gene->util = util_new;
 	if (util_new <= cutoff) {
-		gene->util = util_new;
 		gene->power = power_new;
 		gene->score = power_new;
 		if (util_new >= 1.0)
@@ -149,20 +149,23 @@ init_gene(gene_t *gene)
 			break;
 	}
 	if (i == MAX_TRY)
-		FATAL(3, "cannot generate initial genes");
+		FATAL(3, "cannot generate initial genes: utilization too high: %lf", gene->util);
 }
 
 static void
 init_populations(void)
 {
 	gene_t	*gene;
+	double	util_sum = 0;
 	int	i;
 
 	gene = genes = (gene_t *)malloc(n_pops * sizeof(gene_t));
 
 	for (i = 0; i < n_pops; i++, gene++) {
 		init_gene(gene);
+		util_sum += gene->util;
 	}
+	printf("initial utilization: %lf\n", util_sum / n_pops);
 }
 
 static void

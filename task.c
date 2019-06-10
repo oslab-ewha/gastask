@@ -13,7 +13,7 @@ get_task_utilpower(unsigned no_task, unsigned char mem_type, unsigned char cpufr
 	cpufreq_t	*cpufreq = cpufreqs + cpufreq_type;
 	double	wcet_scaled;
 
-	wcet_scaled = (double)task->wcet / MIN(mem->wcet_scale, cpufreq->wcet_scale);
+	wcet_scaled = (double)task->wcet / (mem->wcet_scale * cpufreq->wcet_scale);
 	if (wcet_scaled >= task->period) {
 		FATAL(3, "task[%u]: scaled wcet exceeds task period: %lf > %lf", wcet_scaled, task->period);
 	}
