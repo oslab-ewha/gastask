@@ -18,7 +18,7 @@ parse_gentask(FILE *fp)
 		}
 		if (sscanf(buf, "%u %u %u %lf %lf %lf %u", &wcet_min, &wcet_max, &mem_total,
 			   &mem_power, &util_cpu, &util_mem, &n_tasks_target) != 7) {
-			FATAL(2, "cannot load configuration: invalid genetic parameters: %s", trim(buf));
+			FATAL(2, "cannot load configuration: invalid gentask parameters: %s", trim(buf));
 		}
 	}
 }
