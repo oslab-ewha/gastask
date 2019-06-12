@@ -2,7 +2,7 @@
 
 function usage() {
     cat <<EOF
-Usage: runsim.sh <util>
+Usage: runsim.sh <n_tasks> <util cpu> <util mem>
 EOF
 }
 
@@ -11,7 +11,7 @@ function cleanup() {
     rm -f /tmp/report.txt /tmp/task.txt /tmp/task_generated.txt
 }
 
-if [ $# -lt 1 ]; then
+if [ $# -lt 3 ]; then
     usage
     exit 1
 fi
@@ -29,29 +29,33 @@ fi
 gastask_conf=/tmp/.gastask_conf.$$
 simrts_conf=/tmp/.simrts_conf.$$
 simrts_res=/tmp/.simrts.result.$$
-util_gen=$1
+n_tasks=$1
+util_cpu=$2
+util_mem=$3
 
 COMMON_CONF="\
 # wcet_sacle power_active power_idle
 *cpufreq
 1    10    8
-0.7  6.7  4.3
+0.5  2.5   0.25
+0.25 0.625 0.0625
+0.125 0.15625 0.015625
 
 # type max_capacity wcet_scale power_active power_idle
 *mem
-nvram 1000 0.7 0.001  0.0009
-dram  1000 1   0.01   0.005
+dram  1000 1    0.01   0.009
+nvram 1000 0.5  0.01   0.000001
 
 # wcet period memreq mem_active_ratio
 *task"
 cat <<EOF > $gastask_conf
 # max_generations n_populations cutoff penalty
 *genetic
-100000 100 1.0001 0.5
+100000 100 1.0 1.5
 
 # wcet_min wcet_max mem_total mem_power util_cpu util_mem n_tasks
 *gentask
-100 300 2000 2 $util_gen 0.95 100
+40 500 2000 2 $util_cpu $util_mem $n_tasks
 
 $COMMON_CONF
 EOF
@@ -84,11 +88,13 @@ fi
 
 cd -
 echo "results are moved to result.$$"
-mkdir result.$$
-mv $simrts_res result.$$/simrts_res.txt
-mv /tmp/report.txt result.$$/
-mv $gastask_conf result.$$/gastask.conf
-mv $simrts_conf result.$$/simrts.conf
-mv /tmp/task.txt result.$$/
+
+result=result_${n_tasks}_${util_cpu}_${util_mem}.$$
+mkdir $result
+mv $simrts_res $result/simrts_res.txt
+mv /tmp/report.txt $result
+mv $gastask_conf $result/gastask.conf
+mv $simrts_conf $result/simrts.conf
+mv /tmp/task.txt $result/
 
 cleanup

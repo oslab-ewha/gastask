@@ -4,7 +4,7 @@ unsigned	wcet_min, wcet_max, mem_total;
 double		mem_power, util_cpu, util_mem;
 unsigned	n_tasks_target;
 
-static double	util_cpu_1task;
+static double	util_sum, util_cpu_1task;
 static unsigned	memreq_1task;
 
 static void
@@ -16,13 +16,14 @@ do_gen_task(FILE *fp)
 
 	wcet = wcet_min + get_rand(wcet_max - wcet_min + 1);
 	duration = (unsigned)(wcet / util_cpu_1task);
-	duration = duration + (int)get_rand(duration / 10) - (int)get_rand(duration / 10);
+	duration = duration + (int)get_rand(duration / 2) - (int)get_rand(duration / 2);
 
-	memreq = memreq_1task + (int)get_rand(memreq_1task / 4) - (int)get_rand(memreq_1task / 4);
+	memreq = memreq_1task + (int)get_rand(memreq_1task / 2) - (int)get_rand(memreq_1task / 2);
 	mem_active_ratio = mem_power / memreq;
 
 	mem_active_ratio += ((int)(get_rand(5000) - (int)get_rand(5000))/ 10000.0 * mem_active_ratio);
 
+	util_sum += ((double)wcet / duration);
 	fprintf(fp, "%u %u %u %lf\n", wcet, duration, memreq, mem_active_ratio);
 }
 
@@ -45,4 +46,6 @@ gen_task(void)
 		do_gen_task(fp);
 	}
 	fclose(fp);
+
+	printf("full power utilization: %lf\n", util_sum);
 }

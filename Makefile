@@ -19,3 +19,6 @@ conf_gastask.o: gastask.h common.h
 report.o: gastask.h common.h
 gasgen: gasgen.h common.h
 conf_gasgen.o: common.h
+
+clean:
+	rm -f gastask gasgen *.o

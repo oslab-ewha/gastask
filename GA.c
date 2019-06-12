@@ -1,6 +1,6 @@
 #include "gastask.h"
 
-#define MAX_TRY	200
+#define MAX_TRY	10000
 
 unsigned	n_pops = 100;
 unsigned	max_gen = 100000;
@@ -34,18 +34,40 @@ show_gene(gene_t *gene)
 #endif
 
 static void
-assign_task_values(unsigned char *task_values, unsigned max_value)
+setup_taskattrs(taskattrs_t *taskattrs)
 {
 	int	i;
 
-	for (i = 0; i < n_tasks; i++)
-		task_values[i] = get_rand(max_value);
+	memset(taskattrs->n_tasks_per_type, 0, MAX_ATTRTYPES);
+	taskattrs->max_type = 0;
+
+	for (i = 0; i < n_tasks; i++) {
+		unsigned	attrtype = taskattrs->attrs[i];
+		taskattrs->n_tasks_per_type[attrtype]++;
+		if (taskattrs->n_tasks_per_type[taskattrs->max_type] < taskattrs->n_tasks_per_type[attrtype]) {
+			taskattrs->max_type = attrtype;
+		}
+	}
+}
+
+static void
+assign_taskattrs(taskattrs_t *taskattrs, unsigned max_value)
+{
+	int	i;
+
+	for (i = 0; i < n_tasks; i++) {
+		unsigned	attrtype = get_rand(max_value);
+		taskattrs->attrs[i] = attrtype;
+	}
+	setup_taskattrs(taskattrs);
 }
 
 static void
 sort_gene_util(gene_t *gene)
 {
 	struct list_head	*lp;
+
+	list_del_init(&gene->list_util);
 
 	list_for_each (lp, &genes_by_util) {
 		gene_t	*gene_list = list_entry(lp, gene_t, list_util);
@@ -62,6 +84,8 @@ sort_gene_power(gene_t *gene)
 {
 	struct list_head	*lp;
 
+	list_del_init(&gene->list_power);
+
 	list_for_each (lp, &genes_by_power) {
 		gene_t	*gene_list = list_entry(lp, gene_t, list_power);
 		if (gene->power < gene_list->power) {
@@ -76,6 +100,8 @@ static void
 sort_gene_score(gene_t *gene)
 {
 	struct list_head	*lp;
+
+	list_del_init(&gene->list_score);
 
 	list_for_each (lp, &genes_by_score) {
 		gene_t	*gene_list = list_entry(lp, gene_t, list_score);
@@ -96,37 +122,114 @@ sort_gene(gene_t *gene)
 }
 
 static BOOL
-calc_utilpower(gene_t *gene)
+check_memusage(gene_t *gene)
+{
+	unsigned	mem_used[MAX_MEMS] = { 0, };
+	int	i;
+
+	for (i = 0; i < n_tasks; i++) {
+		mem_used[gene->taskattrs_mem.attrs[i]] += get_task_memreq(i);
+	}
+	for (i = 0; i < n_mems; i++) {
+		if (mem_used[i] > mems[i].max_capacity)
+			return FALSE;
+	}
+	return TRUE;
+}
+
+static void
+balance_mem_types(gene_t *gene)
+{
+	taskattrs_t	*taskattrs = &gene->taskattrs_mem;
+	unsigned	n_tasks_type;
+
+	n_tasks_type = taskattrs->n_tasks_per_type[taskattrs->max_type];
+	if (n_tasks_type > 0) {
+		unsigned	idx_changed = get_rand(n_tasks_type);
+		unsigned	type_new;
+		unsigned	i;
+		
+		for (i = 0; i < n_tasks; i++) {
+			if (taskattrs->attrs[i] == taskattrs->max_type) {
+				if (idx_changed == 0)
+					break;
+				idx_changed--;
+			}
+		}
+		type_new = get_rand_except(n_mems, taskattrs->max_type);
+		taskattrs->attrs[i] = type_new;
+		taskattrs->n_tasks_per_type[taskattrs->max_type]--;
+		taskattrs->n_tasks_per_type[type_new]++;
+		if (taskattrs->n_tasks_per_type[taskattrs->max_type] < taskattrs->n_tasks_per_type[type_new]) {
+			taskattrs->max_type = type_new;
+		}
+		
+	}
+}
+
+static BOOL
+lower_utilization_by_attr(taskattrs_t *taskattrs)
+{
+	unsigned	idx_org, idx;
+	
+	idx_org = idx = get_rand(n_tasks);
+	do {
+		unsigned	type = taskattrs->attrs[idx];
+		if (type > 0) {
+			taskattrs->attrs[idx]--;
+			
+			taskattrs->n_tasks_per_type[type]--;
+			taskattrs->n_tasks_per_type[type - 1]++;
+			if (taskattrs->n_tasks_per_type[type - 1] > taskattrs->n_tasks_per_type[taskattrs->max_type])
+				taskattrs->max_type = type - 1;
+			return TRUE;
+		}
+		idx++;
+		idx %= n_tasks;
+	} while (idx != idx_org);
+	
+	return FALSE;
+}
+
+static void
+lower_utilization(gene_t *gene)
+{
+	if (get_rand(n_cpufreqs + n_mems) < n_cpufreqs) {
+		if (!lower_utilization_by_attr(&gene->taskattrs_cpufreq))
+			lower_utilization_by_attr(&gene->taskattrs_mem);
+	}
+	else {
+		if (!lower_utilization_by_attr(&gene->taskattrs_mem))
+			lower_utilization_by_attr(&gene->taskattrs_cpufreq);
+	}
+}
+
+BOOL
+check_utilpower(gene_t *gene)
 {
 	double	util_new = 0, power_new, power_new_sum_cpu = 0, power_new_sum_mem = 0;
-	unsigned	mem_used[MAX_MEMS] = { 0, };
 	int	i;
 
 	for (i = 0; i < n_tasks; i++) {
 		double	task_util, task_power_cpu, task_power_mem;
 		
-		get_task_utilpower(i, gene->mems[i], gene->cpufreqs[i], &task_util, &task_power_cpu, &task_power_mem);
-		mem_used[gene->mems[i]] += get_task_memreq(i);
+		get_task_utilpower(i, gene->taskattrs_mem.attrs[i], gene->taskattrs_cpufreq.attrs[i],
+				   &task_util, &task_power_cpu, &task_power_mem);
 		util_new += task_util;
 		power_new_sum_cpu += task_power_cpu;
 		power_new_sum_mem += task_power_mem;
 	}
-	power_new = power_new_sum_cpu / n_tasks + power_new_sum_mem;
-
-	for (i = 0; i < n_mems; i++) {
-		if (mem_used[i] > mems[i].max_capacity)
-			return FALSE;
+	power_new = power_new_sum_cpu + power_new_sum_mem;
+	if (util_new < 1.0) {
+		power_new += cpufreqs[n_cpufreqs - 1].power_idle * (1 - util_new);
 	}
 	gene->util = util_new;
 	if (util_new <= cutoff) {
 		gene->power = power_new;
 		gene->score = power_new;
 		if (util_new >= 1.0)
-			gene->score += power_new * penalty;
-		list_del_init(&gene->list_util);
-		list_del_init(&gene->list_power);
-		list_del_init(&gene->list_score);
-		sort_gene(gene);
+			gene->score += power_new * (util_new - 1.0) * penalty;
+		
 		return TRUE;
 	}
 	return FALSE;
@@ -137,19 +240,26 @@ init_gene(gene_t *gene)
 {
 	int	i;
 
-	for (i = 0; i < MAX_TRY; i++) {
-		assign_task_values(gene->mems, n_mems);
-		assign_task_values(gene->cpufreqs, n_cpufreqs);
+	assign_taskattrs(&gene->taskattrs_mem, n_mems);
+	assign_taskattrs(&gene->taskattrs_cpufreq, n_cpufreqs);
 
+	for (i = 0; i < MAX_TRY; i++) {
 		INIT_LIST_HEAD(&gene->list_util);
 		INIT_LIST_HEAD(&gene->list_power);
 		INIT_LIST_HEAD(&gene->list_score);
 
-		if (calc_utilpower(gene))
-			break;
+		if (!check_memusage(gene)) {
+			balance_mem_types(gene);
+			continue;
+		}
+		if (check_utilpower(gene)) {
+			sort_gene(gene);
+			return;
+		}
+		lower_utilization(gene);
 	}
-	if (i == MAX_TRY)
-		FATAL(3, "cannot generate initial genes: utilization too high: %lf", gene->util);
+
+	FATAL(3, "cannot generate initial genes: utilization too high: %lf", gene->util);
 }
 
 static void
@@ -159,7 +269,7 @@ init_populations(void)
 	double	util_sum = 0;
 	int	i;
 
-	gene = genes = (gene_t *)malloc(n_pops * sizeof(gene_t));
+	gene = genes = (gene_t *)calloc(n_pops, sizeof(gene_t));
 
 	for (i = 0; i < n_pops; i++, gene++) {
 		init_gene(gene);
@@ -169,65 +279,91 @@ init_populations(void)
 }
 
 static void
-swap_values(unsigned char values1[], unsigned char values2[], unsigned crosspt)
+inherit_values(taskattrs_t *taskattrs_newborn, taskattrs_t *taskattrs1, taskattrs_t *taskattrs2, unsigned crosspt)
 {
-	unsigned char	values_temp[MAX_TASKS];
-
-	memcpy(values_temp, values1, crosspt);
-
-	memcpy(values1, values2, crosspt);
-	memcpy(values2, values_temp, crosspt);
+	memcpy(taskattrs_newborn->attrs, taskattrs1->attrs, crosspt);
+	memcpy(taskattrs_newborn->attrs + crosspt, taskattrs2->attrs + crosspt, n_tasks - crosspt);
+	setup_taskattrs(taskattrs_newborn);
 }
 
 static BOOL
-do_crossover(unsigned n1, unsigned n2, unsigned crosspt_mem, unsigned crosspt_cpufreq)
+do_crossover(gene_t *newborn, gene_t *gene1, gene_t *gene2, unsigned crosspt_mem, unsigned crosspt_cpufreq)
 {
-	gene_t	*gene1 = genes + n1, *gene2 = genes + n2;
+	inherit_values(&newborn->taskattrs_mem, &gene1->taskattrs_mem, &gene2->taskattrs_mem, crosspt_mem);
+	inherit_values(&newborn->taskattrs_cpufreq, &gene1->taskattrs_cpufreq, &gene2->taskattrs_cpufreq, crosspt_cpufreq);
 
-	swap_values(gene1->mems, gene2->mems, crosspt_mem);
-	swap_values(gene1->cpufreqs, gene2->cpufreqs, crosspt_cpufreq);
-
-	if (calc_utilpower(gene1) && calc_utilpower(gene2))
-		return TRUE;
-
-	swap_values(gene2->mems, gene1->mems, crosspt_mem);
-	swap_values(gene2->cpufreqs, gene1->cpufreqs, crosspt_cpufreq);
-	calc_utilpower(gene1);
-	calc_utilpower(gene2);
-
-	return FALSE;
+	if (!check_memusage(newborn))
+		return FALSE;
+	if (!check_utilpower(newborn))
+		return FALSE;
+	if (newborn->score > gene1->score || newborn->score > gene2->score)
+		return FALSE;
+	sort_gene(newborn);
+	return TRUE;
 }
 
-static unsigned
-get_best_gene_no(void)
-{
-	gene_t	*gene_best = list_entry(genes_by_power.next, gene_t, list_power);
+#define M	4
 
-	return (unsigned)(gene_best - genes);
+static unsigned
+select_position(void)
+{
+	unsigned	max = M * (n_pops + 1) / 2;
+	unsigned	alpha;
+	unsigned	kvalue;
+
+	alpha = get_rand(max);
+	kvalue = (sqrt(1 + 8 * alpha * n_pops / M) - 1) / 2;
+	ASSERT(n_pops > kvalue);
+	return n_pops - kvalue - 1;
+}
+
+static gene_t *
+select_gene(void)
+{
+	struct list_head	*lp;
+	unsigned	position;
+
+	position = select_position();
+	list_for_each (lp, &genes_by_score) {
+		gene_t	*gene = list_entry(lp, gene_t, list_score);
+		if (position == 0)
+			return gene;
+		position--;
+	}
+	return list_entry(genes_by_score.prev, gene_t, list_score);
+}
+
+static gene_t *
+get_newborn(void)
+{
+	gene_t	*gene = list_entry(genes_by_score.prev, gene_t, list_score);
+
+	list_del_init(&gene->list_util);
+	list_del_init(&gene->list_power);
+	list_del_init(&gene->list_score);
+
+	return gene;
 }
 
 static void
 crossover(void)
 {
-	unsigned	best_no;
+	gene_t	*newborn;
 	int	i;
 
-	best_no = get_best_gene_no();
-
+	newborn = get_newborn();
 	for (i = 0; i < MAX_TRY; i++) {
-		unsigned	n1, n2;
+		gene_t	*gene1, *gene2;
 		unsigned	crosspt_mem, crosspt_cpufreq;
 	
+		gene1 = select_gene();
 		do {
-			n1 = get_rand(n_pops);
-		} while (n1 == best_no);
-		do {
-			n2 = get_rand(n_pops);
-		} while (n2 == n1 || n2 == best_no);
+			gene2 = select_gene();
+		} while (gene1 == gene2);
 
 		crosspt_mem = get_rand(n_tasks - 1) + 1;
 		crosspt_cpufreq = get_rand(n_tasks - 1) + 1;
-		if (do_crossover(n1, n2, crosspt_mem, crosspt_cpufreq))
+		if (do_crossover(newborn, gene1, gene2, crosspt_mem, crosspt_cpufreq))
 			break;
 	}
 	if (i == MAX_TRY) {
@@ -235,33 +371,20 @@ crossover(void)
 	}
 }
 
-static void
-newborn(void)
-{
-	gene_t	*gene = list_entry(genes_by_score.prev, gene_t, list_score);
-
-	list_del(&gene->list_util);
-	list_del(&gene->list_power);
-	list_del(&gene->list_score);
-
-	init_gene(gene);
-}
-
 void
 run_GA(void)
 {
 	unsigned	gen = 1;
-	
+
 	init_report();
 	init_populations();
 
 	add_report(gen);
-	
+
 	while (gen <= max_gen) {
 		crossover();
-		newborn();
-		add_report(gen);
 		gen++;
+		add_report(gen);
 	}
 	close_report();
 }

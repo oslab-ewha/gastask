@@ -40,5 +40,6 @@ void skip_section(FILE *fp);
 void parse_conf(FILE *fp);
 char *trim(char *str);
 unsigned get_rand(unsigned max_value);
+unsigned get_rand_except(unsigned max_value, unsigned ex_value);
 
 #endif

@@ -3,13 +3,20 @@
 
 #include "common.h"
 
-#define MAX_TASKS	100
-#define MAX_CPU_FREQS	10
-#define MAX_MEMS	2
+#define MAX_TASKS	200
+#define MAX_CPU_FREQS	5
+#define MAX_MEMS	5
+#define MAX_ATTRTYPES	5
 
 typedef struct {
-	unsigned char	mems[MAX_TASKS];
-	unsigned char	cpufreqs[MAX_TASKS];
+	unsigned char	attrs[MAX_TASKS];
+	unsigned	n_tasks_per_type[MAX_ATTRTYPES];
+	unsigned	max_type;
+} taskattrs_t;
+
+typedef struct {
+	taskattrs_t	taskattrs_mem;
+	taskattrs_t	taskattrs_cpufreq;
 	double		util, power, score;
 	struct list_head	list_util;
 	struct list_head	list_power;
@@ -34,9 +41,6 @@ typedef struct {
 	unsigned	max_capacity;
 	double		wcet_scale;
 	double		power_active, power_idle;	/* per tick * mem_req */
-
-	unsigned	amount;
-	unsigned	n_tasks;
 } mem_t;
 
 extern unsigned max_gen;
