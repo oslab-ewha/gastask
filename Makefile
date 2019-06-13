@@ -5,7 +5,7 @@ CFLAGS = -g -Wall -DDEBUG
 gastask: gastask.o GA.o task.o cpu.o mem.o util.o conf.o conf_gastask.o report.o
 	gcc -o gastask $^ -lm
 
-gasgen: gasgen.o gen_task.o util.o conf.o conf_gasgen.o
+gasgen: gasgen.o gen_task.o mem.o util.o conf.o conf_gasgen.o
 	gcc -o $@ $^ 
 
 gastask.o: gastask.h common.h

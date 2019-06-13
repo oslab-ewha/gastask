@@ -1,7 +1,7 @@
 #include "gastask.h"
 
 extern unsigned	wcet_min, wcet_max, mem_total;
-extern double	mem_power, util_cpu, util_mem;
+extern double	util_cpu, util_target;
 extern unsigned	n_tasks_target;
 
 static void
@@ -16,9 +16,12 @@ parse_gentask(FILE *fp)
 			fseek(fp, -1 * strlen(buf), SEEK_CUR);
 			return;
 		}
-		if (sscanf(buf, "%u %u %u %lf %lf %lf %u", &wcet_min, &wcet_max, &mem_total,
-			   &mem_power, &util_cpu, &util_mem, &n_tasks_target) != 7) {
+		if (sscanf(buf, "%u %u %u %lf %lf %u", &wcet_min, &wcet_max, &mem_total,
+			   &util_cpu, &util_target, &n_tasks_target) != 6) {
 			FATAL(2, "cannot load configuration: invalid gentask parameters: %s", trim(buf));
+		}
+		if (util_cpu > util_target) {
+			FATAL(2, "target utilization cannot be smaller than full utilzation");
 		}
 	}
 }
@@ -34,9 +37,11 @@ parse_conf(FILE *fp)
 		switch (check_section(buf)) {
 		case SECT_GENETIC:
 		case SECT_CPUFREQ:
-		case SECT_MEM:
 		case SECT_TASK:
 			skip_section(fp);
+			break;
+		case SECT_MEM:
+			parse_mem(fp);
 			break;
 		case SECT_GENTASK:
 			parse_gentask(fp);

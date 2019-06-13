@@ -32,8 +32,19 @@ typedef enum {
 	SECT_TASK,
 } section_t;
 
-void load_conf(const char *fpath);
+typedef struct {
+	char		*typestr;
+	unsigned	max_capacity;
+	double		wcet_scale;
+	double		power_active, power_idle;	/* per tick * mem_req */
+} mem_t;
+
+extern unsigned	n_mems;
+extern mem_t	mems[];
+
 void errmsg(const char *fmt, ...);
+void load_conf(const char *fpath);
+void parse_mem(FILE *fp);
 
 section_t check_section(const char *line);
 void skip_section(FILE *fp);

@@ -2,7 +2,7 @@
 
 function usage() {
     cat <<EOF
-Usage: runsim.sh <n_tasks> <util cpu> <util mem>
+Usage: runsim.sh <n_tasks> <util> <util cpu>
 EOF
 }
 
@@ -30,8 +30,8 @@ gastask_conf=/tmp/.gastask_conf.$$
 simrts_conf=/tmp/.simrts_conf.$$
 simrts_res=/tmp/.simrts.result.$$
 n_tasks=$1
-util_cpu=$2
-util_mem=$3
+util_target=$2
+util_cpu=$3
 
 COMMON_CONF="\
 # wcet_sacle power_active power_idle
@@ -51,11 +51,11 @@ nvram 1000 0.5  0.01   0.000001
 cat <<EOF > $gastask_conf
 # max_generations n_populations cutoff penalty
 *genetic
-100000 100 1.0 1.5
+3000 100 1.0 1.5
 
-# wcet_min wcet_max mem_total mem_power util_cpu util_mem n_tasks
+# wcet_min wcet_max mem_total util_cpu util_target n_tasks
 *gentask
-40 500 2000 2 $util_cpu $util_mem $n_tasks
+40 500 2000 $util_cpu $util_target $n_tasks
 
 $COMMON_CONF
 EOF
@@ -89,7 +89,7 @@ fi
 cd -
 echo "results are moved to result.$$"
 
-result=result_${n_tasks}_${util_cpu}_${util_mem}.$$
+result=result_${n_tasks}_${util_target}_${util_cpu}.$$
 mkdir $result
 mv $simrts_res $result/simrts_res.txt
 mv /tmp/report.txt $result

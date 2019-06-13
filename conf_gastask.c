@@ -47,40 +47,6 @@ parse_cpufreq(FILE *fp)
 }
 
 static void
-parse_mem(FILE *fp)
-{
-	char	buf[1024];
-
-	while (fgets(buf, 1024, fp)) {
-		unsigned	max_capacity;
-		double		wcet_scale, power_active, power_idle;
-		char		type[1024];
-
-		if (buf[0] == '#')
-			continue;
-		if (buf[0] == '\n' || buf[0] == '*') {
-			fseek(fp, -1 * strlen(buf), SEEK_CUR);
-			return;
-		}
-		if (sscanf(buf, "%s %u %lf %lf %lf", type, &max_capacity, &wcet_scale, &power_active, &power_idle) != 5) {
-			FATAL(2, "cannot load configuration: invalid memory spec: %s", trim(buf));
-		}
-
-		if (max_capacity == 0) {
-			FATAL(2, "invalid max memory capacity: %s", trim(buf));
-		}
-		if (wcet_scale < 0 || wcet_scale > 1) {
-			FATAL(2, "invalid memory wcet scale: %s", trim(buf));
-		}
-		if (power_active < 0 || power_idle < 0) {
-			FATAL(2, "invalid memory power: %s", trim(buf));
-		}
-
-		add_mem(type, max_capacity, wcet_scale, power_active, power_idle);
-	}
-}
-
-static void
 parse_task(FILE *fp)
 {
 	char	buf[1024];
