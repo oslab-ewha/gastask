@@ -36,15 +36,15 @@ util_cpu=$3
 COMMON_CONF="\
 # wcet_sacle power_active power_idle
 *cpufreq
-1    10    8
-0.5  2.5   0.25
-0.25 0.625 0.0625
-0.125 0.15625 0.015625
+1    100    80
+0.5  25   2.5
+0.25 6.25 0.625
+0.125 1.5625 0.15625
 
 # type max_capacity wcet_scale power_active power_idle
 *mem
 dram  1000 1    0.01   0.009
-nvram 1000 0.5  0.01   0.000001
+nvram 1000 0.8  0.01   0.0009
 
 # wcet period memreq mem_active_ratio
 *task"
