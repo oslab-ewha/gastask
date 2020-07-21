@@ -1,10 +1,11 @@
 # gastask(GA for Scheduling real-time TASKs) 
-This project demonstrates that a GA(genetic algorithm) approach can provide a near-optimized power-efficient scheduling for real-time tasks
-who execute with DVS(dynamic voltage scaling) and HM(Hybrid Memory).
+This project demonstrates that a GA (genetic algorithm) approach can provide power-efficient scheduling for real-time tasks that makes use of DVS (dynamic voltage scaling) and HM (Hybrid Memory).
 
 Two executables included in this project.
 - gasgen: task generation tool based on CPU and total utilization
-- gastask: scheduling scheme generator based on GA  
+- gastask: scheduling scheme generator based on GA
+
+For comparison purposes, our basic simulator supporting dynamic voltage scaling (DVS) and hybrid memory (HM) can be downloaded at https://github.com/oslab-ewha/simrts.
 
 ## Build
 Just make to build gastask
@@ -24,7 +25,7 @@ Just make to build gastask
 ```
 # ./gastask gastask.conf
 ```
-- scheduling information is generated into <code>task.txt</code>, which can be a input to simrts.
+- scheduling information is generated in <code>task.txt</code>, which can be used as an input to simrts.
 
 ## Batch run
-- runsim.sh can do all the procedures in batch including simrts run
+- runsim.sh performs all procedures in batch including simrts run
