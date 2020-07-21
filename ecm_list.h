@@ -37,6 +37,7 @@ __list_add(struct list_head *lnew,
 {
 	next->prev = lnew;
 	lnew->next = next;
+
 	lnew->prev = prev;
 	prev->next = lnew;
 }

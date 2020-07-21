@@ -27,6 +27,7 @@ errmsg(const char *fmt, ...)
 	va_end(ap);
 
 	fprintf(stderr, "ERROR: %s\n", errmsg);
+
 	free(errmsg);
 }
 

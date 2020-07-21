@@ -11,6 +11,7 @@ add_mem(const char *typestr, unsigned max_capacity, double wcet_scale, double po
 	if (n_mems >= MAX_MEMS) {
 		FATAL(2, "too many memory types");
 	}
+
 	mem = &mems[n_mems];
 	mem->typestr = strdup(typestr);
 	mem->wcet_scale = wcet_scale;
